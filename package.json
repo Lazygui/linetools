@@ -1,0 +1,30 @@
+{
+    "name": "linetools",
+    "version": "1.0.0",
+    "description": "命令行工具：目前仅支持HTTP/HTTPS请求",
+    "main": "index.js",
+    "bin": {
+        "linetools": "index.js"
+    },
+    "scripts": {
+        "start": "node index.js",
+        "build": "pkg index.js --target node18-win-x64 --output linetools.exe"
+    },
+    "dependencies": {
+        "alphabetjs": "^0.1.4",
+        "os-locale": "^6.0.2",
+        "pkg": "^5.8.1"
+    },
+    "pkg": {
+        "scripts": [
+            "index.js"
+        ],
+        "assets": [
+            "index.js"
+        ],
+        "targets": [
+            "node18-win-x64"
+        ],
+        "outputPath": "./dist"
+    }
+}
