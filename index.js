@@ -1,83 +1,117 @@
 const readline = require('readline');
 const Alphabet = require('alphabetjs');
-const curl = require('./modules/curl')
+const curl = require('./modules/curl');
+const sqlite = require('./modules/sqlite');
+
+// 创建 readline 接口
 const rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout
+    output: process.stdout,
 });
-/**
- * 显示帮助信息，说明curl命令的使用方法和参数选项
- */
-const showHelp = () => {
-    console.log(" ");
-    console.log('  curl: API Request Tool( curl --h or curl help )');
-    console.log(" ");
-}
-const showHelpCurl = () => {
-    console.log(" ");
-    console.log("Usage: curl  http://example.com -d {page_index:1,page_size:10} -h Content-Type:application/json");
-    console.log('  -p: POST request (default: POST)');
-    console.log('  -g: GET request');
-    console.log('  -d: Object body for POST requests');
-    console.log('  -h: Custom headers (can be used multiple times)');
-    console.log('  --h: Show this help');
-    console.log(" ");
-}
-/**
- * 打印装饰性横幅文字
- * @param {string} customText - 要显示的自定义文本，默认为'WELCOME'
- * @param {string} style - 字体样式，默认为'stereo'
- */
-const printDecoratedBanner = (customText = 'WELCOME', style = 'stereo') => {
-    const alphabetArt = Alphabet(customText.toUpperCase(), style);
-    const lines = alphabetArt.split('\n');
-    const maxWidth = lines.reduce((max, line) => Math.max(max, line.length), 0);
+
+// 装饰横幅
+const printDecoratedBanner = (text = 'WELCOME', style = 'stereo') => {
+    const art = Alphabet(text.toUpperCase(), style);
+    const lines = art.split('\n');
+    const maxLen = Math.max(...lines.map(l => l.length));
     lines.forEach(line => {
-        const paddedLine = line.padEnd(maxWidth);
-        console.log(`${paddedLine}`);
+        console.log(line.padEnd(maxLen));
     });
-}
+};
 
-printDecoratedBanner();
-const main = async () => {
+// 显示主帮助信息
+const showMainHelp = () => {
+    console.log('\n🛠️  LineTools CLI - 命令行多功能工具');
+    console.log('💡 可用命令:\n');
+    console.log('  curl <url> [options]       - 发送 HTTP 请求 (支持 POST/GET)');
+    console.log('  sqlite <db_path> [options] - 操作 SQLite 数据库');
+    console.log('  help, --h                  - 显示此帮助信息\n');
+};
 
+// 显示 curl 子命令帮助
+const showCurlHelp = () => {
+    console.log('\n🔌 curl 命令使用帮助:');
+    console.log('Usage:  curl <URL> -d "{key:value}" -h "Header:Value" [--options]');
+    console.log('Options:');
+    console.log('  -p, --post    : 使用 POST 请求 (默认)');
+    console.log('  -g, --get     : 使用 GET 请求');
+    console.log('  -d, --data    : POST 请求的 JSON 数据体 (用引号包裹)');
+    console.log('  -h, --header  : 自定义请求头 (可多次使用)');
+    console.log('  --h, --help   : 显示此帮助\n');
+};
 
+// 显示 sqlite 子命令帮助
+const showSqliteHelp = () => {
+    console.log('\n🗃️  sqlite 命令使用帮助:');
+    console.log('Usage:  sqlite <database_path> [options]');
+    console.log('Options:');
+    console.log('  -show        : 显示数据库表数据（默认行为，需配合模块逻辑）');
+    console.log('  -r, --refresh: 刷新或重新选择表');
+    console.log('  -x, --exit   : 关闭当前数据库连接');
+    console.log('  --h, --help  : 显示此帮助\n');
+};
+
+// 主交互逻辑
+const promptNext = () => {
     rl.question('tools > ', async (input) => {
-        const args = input.split(' ').filter(part => part !== '');
-        const shift = args.shift()
-        if (shift) {
-            if (shift === '--h' || shift === 'help') {
-                showHelp()
-                return main();
-            }
-            if (args.length === 0) {
-                console.log('Invalid command. Type "--h / help" for help.');
-                return main();
-            }
-        }
         try {
-            switch (shift) {
-                case '--h':
-                case 'help':
-                    showHelp();
-                    break;
+            const args = input.trim().split(/\s+/).filter(Boolean);
+            const cmd = args.shift(); // 获取命令，如 curl, sqlite, help
+
+            if (!cmd) {
+                return promptNext(); // 空输入，重新提示
+            }
+
+            // 帮助相关
+            if (cmd === 'help' || cmd === '--h') {
+                showMainHelp();
+                return promptNext();
+            }
+
+            // 子命令分发
+            switch (cmd.toLowerCase()) {
                 case 'curl':
-                    if (args.includes('--h') || args.includes('help')) {
-                        showHelpCurl();
-                        break;
+                    if (args.includes('--h') || args.includes('help') || args.includes('-h')) {
+                        showCurlHelp();
+                    } else {
+                        await curl(args); // 传递剩余参数
                     }
-                    await curl(args)
+                    break;
+
+                case 'sqlite':
+                    if (args.includes('--h') || args.includes('help') || args.includes('-h')) {
+                        showSqliteHelp();
+                    } else {
+                        await sqlite(args); // 传递剩余参数
+                    }
                     break;
 
                 default:
-                    console.log('Invalid command. Type "--h / help" for help.');
-                    break;
+                    console.log(`❌ ❓ 未知命令: "${cmd}". 输入 "help" 查看可用命令。`);
             }
-        } catch (error) {
-            console.log("🚀 ~ main ~ error:", error)
-        }
-        return main();
-    });
-}
 
-main();
+        } catch (err) {
+            console.error(`🚨 执行出错: ${err.message || err}`);
+        }
+
+        // 继续下一轮输入
+        promptNext();
+    });
+};
+
+// 启动程序
+const startApp = () => {
+    printDecoratedBanner('LINETOOLS');
+    showMainHelp(); // 启动后显示主帮助
+    promptNext();   // 开始接收用户输入
+};
+
+// 入口
+startApp();
+
+// 可选：优雅退出（比如监听 Ctrl+C）
+process.on('SIGINT', () => {
+    console.log('\n👋 感谢使用 LineTools，再见！');
+    rl.close();
+    process.exit(0);
+});
