@@ -17,6 +17,8 @@ ${chalk.yellow('🔧 curl 命令帮助信息:')}`);
     console.log(`  ${chalk.green('-g')}          : 使用 GET 请求`);
     console.log(`  ${chalk.green('-h <header>')} : 设置请求头（通常为 Object 格式），如：-h {Authorization: Bearer xxx}`);
     console.log(`  ${chalk.green('-d <data>')}   : 设置请求体（通常为 Object 格式），如：-d {page_index:1}`);
+    console.log(`  ${chalk.green('return')}      : 可退出 curl 模块`);
+    console.log(`  ${chalk.green('help')}        : 可再次查看此帮助`);
     console.log();
     console.log(`${chalk.cyan('示例:')}`);
     console.log(`  ${chalk.green('http://localhost:3000/api/list -d {page_index:1} -h {Authorization:Bearer xxx}')}`);
@@ -24,8 +26,6 @@ ${chalk.yellow('🔧 curl 命令帮助信息:')}`);
     console.log();
     console.log(`${chalk.cyan('提示:')}`);
     console.log(`  ${chalk.blue('- 请求 URL 必须以 http:// 或 https:// 开头')}`);
-    console.log(`  ${chalk.blue('- 输入 "return" 可退出 curl 模块')}`);
-    console.log(`  ${chalk.blue('- 输入 "help" 可再次查看此帮助')}`);
     console.log(`${chalk.yellow('============================')}`);
 };
 const extract = (cmdList) => {
