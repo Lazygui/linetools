@@ -1,16 +1,12 @@
-const readline = require('readline');
-const Alphabet = require('alphabetjs');
-const curl = require('./modules/curl');
-const sqlite = require('./modules/sqlite');
+// index.js
 
-// 创建 readline 接口
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-});
+const { select, Separator } = require('@inquirer/prompts');
+const fs = require('fs');
+const path = require('path');
 
 // 装饰横幅
 const printDecoratedBanner = (text = 'WELCOME', style = 'stereo') => {
+    const Alphabet = require('alphabetjs');
     const art = Alphabet(text.toUpperCase(), style);
     const lines = art.split('\n');
     const maxLen = Math.max(...lines.map(l => l.length));
@@ -19,99 +15,110 @@ const printDecoratedBanner = (text = 'WELCOME', style = 'stereo') => {
     });
 };
 
-// 显示主帮助信息
-const showMainHelp = () => {
-    console.log('\n🛠️  LineTools CLI - 命令行多功能工具');
-    console.log('💡 可用命令:\n');
-    console.log('  curl <url> [options]       - 发送 HTTP 请求 (支持 POST/GET)');
-    console.log('  sqlite <db_path> [options] - 操作 SQLite 数据库');
-    console.log('  help, --h                  - 显示此帮助信息\n');
-};
+/**
+ * 动态加载 modules 目录下的所有子模块
+ * 只加载 .js 文件，排除 index.js
+ */
+const loadModules = () => {
+    const modulesDir = path.join(__dirname, 'modules');
+    let files;
 
-// 显示 curl 子命令帮助
-const showCurlHelp = () => {
-    console.log('\n🔌 curl 命令使用帮助:');
-    console.log('Usage:  curl <URL> -d "{key:value}" -h "Header:Value" [--options]');
-    console.log('Options:');
-    console.log('  -p, --post    : 使用 POST 请求 (默认)');
-    console.log('  -g, --get     : 使用 GET 请求');
-    console.log('  -d, --data    : POST 请求的 JSON 数据体 (用引号包裹)');
-    console.log('  -h, --header  : 自定义请求头 (可多次使用)');
-    console.log('  --h, --help   : 显示此帮助\n');
-};
+    try {
+        files = fs.readdirSync(modulesDir);
+    } catch (err) {
+        console.error(`🚨 无法读取模块目录 "${modulesDir}": ${err.message}`);
+        return [];
+    }
 
-// 显示 sqlite 子命令帮助
-const showSqliteHelp = () => {
-    console.log('\n🗃️  sqlite 命令使用帮助:');
-    console.log('Usage:  sqlite <database_path> [options]');
-    console.log('Options:');
-    console.log('  -show        : 显示数据库表数据（默认行为，需配合模块逻辑）');
-    console.log('  -r, --refresh: 刷新或重新选择表');
-    console.log('  -x, --exit   : 关闭当前数据库连接');
-    console.log('  --h, --help  : 显示此帮助\n');
-};
+    const moduleChoices = [];
 
-// 主交互逻辑
-const promptNext = () => {
-    rl.question('tools > ', async (input) => {
-        try {
-            const args = input.trim().split(/\s+/).filter(Boolean);
-            const cmd = args.shift(); // 获取命令，如 curl, sqlite, help
-
-            if (!cmd) {
-                return promptNext(); // 空输入，重新提示
-            }
-
-            // 帮助相关
-            if (cmd === 'help' || cmd === '--h') {
-                showMainHelp();
-                return promptNext();
-            }
-
-            // 子命令分发
-            switch (cmd.toLowerCase()) {
-                case 'curl':
-                    if (args.includes('--h') || args.includes('help') || args.includes('-h')) {
-                        showCurlHelp();
-                    } else {
-                        await curl(args); // 传递剩余参数
-                    }
-                    break;
-
-                case 'sqlite':
-                    if (args.includes('--h') || args.includes('help') || args.includes('-h')) {
-                        showSqliteHelp();
-                    } else {
-                        await sqlite(args); // 传递剩余参数
-                    }
-                    break;
-
-                default:
-                    console.log(`❌ ❓ 未知命令: "${cmd}". 输入 "help" 查看可用命令。`);
-            }
-
-        } catch (err) {
-            console.error(`🚨 执行出错: ${err.message || err}`);
+    files.forEach((file) => {
+        if (file.endsWith('.js') && file !== 'index.js') {
+            const moduleName = path.basename(file, '.js'); // 去掉 .js 后缀
+            moduleChoices.push({
+                name: moduleName,
+                value: moduleName,
+                description: `操作 ${moduleName} 相关功能`
+            });
         }
-
-        // 继续下一轮输入
-        promptNext();
     });
+
+    return moduleChoices;
 };
 
-// 启动程序
+/**
+ * 主应用入口：循环显示主菜单，支持选择子模块或退出
+ */
 const startApp = () => {
-    printDecoratedBanner('LINETOOLS');
-    showMainHelp(); // 启动后显示主帮助
-    promptNext();   // 开始接收用户输入
+    /**
+     * 内部递归函数：负责每次渲染主菜单并处理用户选择
+     */
+    const runMainMenu = () => {
+        printDecoratedBanner('LINETOOLS');
+
+        const moduleChoices = loadModules();
+
+        const choices = [
+            ...moduleChoices.map(mod => ({
+                name: `${mod.name}`,
+                value: mod.value,
+                description: `操作 ${mod.name} 相关功能`
+            })),
+            new Separator(),
+            {
+                name: '退出程序',
+                value: 'exit',
+                description: '退出 LineTools CLI'
+            }
+        ];
+
+        select({
+            message: '请选择要使用的子模块:',
+            choices: choices
+        }).then((answer) => {
+            if (answer === 'exit') {
+                console.log('\n👋 感谢使用 LineTools，再见！');
+                process.exit(0); // 真正退出程序
+            }
+
+            // 动态加载用户选择的子模块
+            try {
+                const modulePath = path.join(__dirname, 'modules', `${answer}.js`);
+                const module = require(modulePath);
+
+                if (typeof module.start === 'function') {
+                    console.log(`\n🚀 正在启动 "${answer}" 模块...\n`);
+                    module.start(runMainMenu); // 调用子模块的 start() 方法
+                } else {
+                    console.error(`❌ 模块 "${answer}" 没有提供 start() 方法`);
+                }
+            } catch (err) {
+                console.error(`🚨 加载模块 "${answer}" 失败: ${err.message}`);
+            }
+        }).catch((err) => {
+            if (err.name === 'ExitPromptError') {
+                console.log('\n👋 感谢使用 LineTools，再见！');
+                process.exit(0);
+            } else {
+                console.error('❌ 发生了一个错误:', err.message);
+                // 出错后仍然回到主菜单
+                runMainMenu();
+            }
+        });
+    };
+
+    // 启动主菜单循环
+    runMainMenu();
 };
 
-// 入口
-startApp();
-
-// 可选：优雅退出（比如监听 Ctrl+C）
+// 全局处理 Ctrl+C 退出信号
 process.on('SIGINT', () => {
-    console.log('\n👋 感谢使用 LineTools，再见！');
-    rl.close();
+    console.log('\n\n👋 感谢使用 LineTools，再见！');
     process.exit(0);
 });
+
+// 启动应用
+startApp();
+
+// 可选：打印终端宽度（调试用）
+// console.log(`当前终端窗口一行可以显示 ${process.stdout.columns} 个字符`);

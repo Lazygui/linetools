@@ -7,13 +7,17 @@
         "linetools": "index.js"
     },
     "scripts": {
-        "start": "node index.js",
+        "dev": "node index.js",
         "build": "pkg index.js --target node18-win-x64 --output linetools.exe"
     },
     "dependencies": {
+        "@inquirer/prompts": "^7.8.0",
         "alphabetjs": "^0.1.4",
         "os-locale": "^6.0.2",
-        "pkg": "^5.8.1"
+        "pkg": "^5.8.1",
+        "sqlite3": "^5.1.7",
+        "string-width": "^7.2.0",
+        "table": "^6.9.0"
     },
     "pkg": {
         "scripts": [
