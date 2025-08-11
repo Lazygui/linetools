@@ -1,8 +1,33 @@
 const { input } = require('@inquirer/prompts');
 const http = require('http');
 const https = require('https');
+const chalk = require('chalk')
 //正则匹配以 http:// 或 https:// 开头的元素
 const urlRegex = /^https?:\/\//;
+
+/**
+ * 显示 curl 命令的帮助信息
+ */
+const showHelp = () => {
+    console.log(`
+${chalk.yellow('🔧 curl 命令帮助信息:')}`);
+    console.log(`${chalk.yellow('============================')}`);
+    console.log(`${chalk.cyan('参数说明:')}`);
+    console.log(`  ${chalk.green('-p')}          : 使用 POST 请求（默认）`);
+    console.log(`  ${chalk.green('-g')}          : 使用 GET 请求`);
+    console.log(`  ${chalk.green('-h <header>')} : 设置请求头（通常为 Object 格式），如：-h {Authorization: Bearer xxx}`);
+    console.log(`  ${chalk.green('-d <data>')}   : 设置请求体（通常为 Object 格式），如：-d {page_index:1}`);
+    console.log();
+    console.log(`${chalk.cyan('示例:')}`);
+    console.log(`  ${chalk.green('http://localhost:3000/api/list -d {page_index:1} -h {Authorization:Bearer xxx}')}`);
+    console.log(`  ${chalk.green('http://example.com/api -g -h {Token:123456}')}`);
+    console.log();
+    console.log(`${chalk.cyan('提示:')}`);
+    console.log(`  ${chalk.blue('- 请求 URL 必须以 http:// 或 https:// 开头')}`);
+    console.log(`  ${chalk.blue('- 输入 "return" 可退出 curl 模块')}`);
+    console.log(`  ${chalk.blue('- 输入 "help" 可再次查看此帮助')}`);
+    console.log(`${chalk.yellow('============================')}`);
+};
 const extract = (cmdList) => {
 
     // 1. 判断请求方法
@@ -101,14 +126,15 @@ const sendRequest = (url, method, headers, body) => {
  * 功能：模拟一个简单的 curl 请求输入工具，接收用户输入的 URL 并“展示”请求信息
  */
 const start = (runMainMenu) => {
+    showHelp()
     // 使用 inquirer 的 input 提示用户输入 URL
     input({
-        message: 'curl >:',
+        message: 'curl 请输入>:',
         validate: (input) => {
             if (!input || input.trim() === '') {
                 return '❌ URL 不能为空，请重新输入';
             }
-            if (input === 'return') {
+            if (input === 'return' || input === 'help') {
                 return true
             }
             // 简单校验是否以 http 或 https 开头
@@ -122,6 +148,11 @@ const start = (runMainMenu) => {
             console.log('👋 退出 curl 子模块，返回主菜单...');
             runMainMenu()
             return; // 👈 重要：直接返回，结束当前 then，控制权回到 index.js
+        }
+        if (url === 'help') {
+            showHelp()
+            start()
+            return;
         }
         const request = url.split(' ')
         const { urls, method, headers, body } = extract(request)

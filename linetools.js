@@ -54,7 +54,7 @@ const startApp = () => {
      * 内部递归函数：负责每次渲染主菜单并处理用户选择
      */
     const runMainMenu = () => {
-        printDecoratedBanner('LINETOOLS');
+        printDecoratedBanner();
 
         const moduleChoices = loadModules();
 
