@@ -17,6 +17,7 @@ linetools/
 ├── package.json    # 项目依赖配置
 ├── README.md       # 项目说明文档
 └── modules/
+    ├── sqlite.js   # sqlite数据库查看模块
     └── curl.js     # 网络请求工具模块
 ```
 
