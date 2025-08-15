@@ -79,7 +79,7 @@ module.exports = {
             // ---- 第一步：选择并验证 SQLite 文件路径 ----
             while (!dbPath) {
                 const inputPath = await input({
-                    message: '📁 请拖拽 SQLite 文件到本窗口，或输入数据库文件完整路径:',
+                    message: '📁 请复制 SQLite 文件路径到本窗口，或输入数据库文件完整路径:',
                     validate: (input) => {
                         if (!input?.trim()) return '❌ 路径不能为空';
                         const normalized = normalizeDraggedPath(input);
